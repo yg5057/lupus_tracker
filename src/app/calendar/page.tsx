@@ -3,15 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import {
-  DOW_KO,
-  dateKey,
-  groupByDay,
-  isBpOut,
-  isRecordOut,
-  isTempOut,
-  latestOfDay,
-} from "@/lib/records";
+import { DOW_KO, dateKey, groupByDay, isBpOut, isRecordOut, isTempOut } from "@/lib/records";
 import { useRecords } from "@/lib/useRecords";
 
 export default function CalendarPage() {
@@ -40,7 +32,6 @@ export default function CalendarPage() {
   }, [picked, byDay, view, daysInMonth]);
 
   const selectedRecords = selectedKey ? byDay.get(selectedKey) : undefined;
-  const selected = selectedRecords ? latestOfDay(selectedRecords) : null;
   const selectedDate = selectedKey
     ? new Date(Number(selectedKey.slice(0, 4)), Number(selectedKey.slice(5, 7)) - 1, Number(selectedKey.slice(8, 10)))
     : null;
@@ -139,14 +130,17 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* 선택한 날 요약 */}
+      {/* 선택한 날 기록 목록 */}
       <div className="rounded-[20px] bg-white p-5 shadow-card">
-        {selected && selectedDate ? (
+        {selectedRecords && selectedDate ? (
           <>
             <div className="flex items-center justify-between">
               <div className="text-[15px] font-bold">
                 {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일 (
                 {DOW_KO[selectedDate.getDay()]})
+                <span className="ml-1.5 text-[13px] font-medium text-faint">
+                  {selectedRecords.length}건
+                </span>
               </div>
               <Link
                 href={`/?date=${selectedKey}`}
@@ -156,34 +150,37 @@ export default function CalendarPage() {
                 <ChevronRight size={13} strokeWidth={2.5} />
               </Link>
             </div>
-            <div className="mt-4 flex">
-              <div className="flex-1">
-                <div className="text-xs font-medium text-sub">체온</div>
-                <div className="mt-1.5 flex items-baseline gap-1">
-                  <span
-                    className={`text-[28px] leading-none font-extrabold tracking-[-0.6px] ${
-                      isTempOut(selected.temperature) ? "text-alert" : "text-ink"
-                    }`}
+            <div className="mt-3 flex flex-col">
+              {selectedRecords.map((r) => {
+                const d = new Date(r.recordedAt);
+                return (
+                  <div
+                    key={r.id}
+                    className="flex items-center justify-between border-t border-screen py-3 first:border-t-0"
                   >
-                    {selected.temperature.toFixed(1)}
-                  </span>
-                  <span className="text-sm font-semibold text-faint">°C</span>
-                </div>
-              </div>
-              <div className="mx-4 w-px bg-screen" />
-              <div className="flex-1">
-                <div className="text-xs font-medium text-sub">혈압</div>
-                <div className="mt-1.5 flex items-baseline gap-1">
-                  <span
-                    className={`text-[28px] leading-none font-extrabold tracking-[-0.6px] ${
-                      isBpOut(selected) ? "text-alert" : "text-ink"
-                    }`}
-                  >
-                    {selected.systolic}/{selected.diastolic}
-                  </span>
-                  <span className="text-sm font-semibold text-faint">mmHg</span>
-                </div>
-              </div>
+                    <div className="text-sm font-medium text-mid">
+                      {String(d.getHours()).padStart(2, "0")}:
+                      {String(d.getMinutes()).padStart(2, "0")}
+                    </div>
+                    <div className="flex gap-2">
+                      <span
+                        className={`rounded-[9px] bg-screen px-2.5 py-1.5 text-sm font-bold ${
+                          isTempOut(r.temperature) ? "text-alert" : "text-body"
+                        }`}
+                      >
+                        {r.temperature.toFixed(1)}°C
+                      </span>
+                      <span
+                        className={`rounded-[9px] bg-screen px-2.5 py-1.5 text-sm font-bold ${
+                          isBpOut(r) ? "text-alert" : "text-body"
+                        }`}
+                      >
+                        {r.systolic}/{r.diastolic}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </>
         ) : (

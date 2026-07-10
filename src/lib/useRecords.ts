@@ -28,12 +28,24 @@ function subscribe(listener: () => void) {
   };
 }
 
-function addRecord(input: Omit<VitalRecord, "id">): VitalRecord {
-  const record = createRecord(input);
-  cache = [...getSnapshot(), record];
+function commit(next: VitalRecord[]) {
+  cache = next;
   saveRecords(cache);
   listeners.forEach((l) => l());
+}
+
+function addRecord(input: Omit<VitalRecord, "id">): VitalRecord {
+  const record = createRecord(input);
+  commit([...getSnapshot(), record]);
   return record;
+}
+
+function updateRecord(id: string, patch: Omit<VitalRecord, "id">) {
+  commit(getSnapshot().map((r) => (r.id === id ? { ...patch, id } : r)));
+}
+
+function removeRecord(id: string) {
+  commit(getSnapshot().filter((r) => r.id !== id));
 }
 
 /** localStorage 기반 기록 스토어 훅. ready는 클라이언트 하이드레이션 완료 여부. */
@@ -44,5 +56,5 @@ export function useRecords() {
     () => true,
     () => false,
   );
-  return { records, ready, add: addRecord };
+  return { records, ready, add: addRecord, update: updateRecord, remove: removeRecord };
 }
